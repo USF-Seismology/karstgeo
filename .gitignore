@@ -208,4 +208,5 @@ __marimo__/
 
 .DS_Store
 *.swp
-
+*.mseed
+*.npy

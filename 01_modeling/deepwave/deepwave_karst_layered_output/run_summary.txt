@@ -1,0 +1,19 @@
+Deepwave karst survey model run summary
+======================================
+
+Grid spacing: 0.25 m
+Time step: 0.0001 s
+Samples: 4000
+Source frequency: 60.0 Hz
+SmartSolo nodes: 36
+Shots: 42
+
+Cave:
+  centre_x_m: 70.0
+  centre_depth_m: 18.0
+  diameter_m: 6.0
+  radius_m: 3.0
+  top_depth_m: 15.0
+  bottom_depth_m: 21.0
+
+Note: density is used for graphics/documentation only in scalar modelling.
