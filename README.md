@@ -8,6 +8,7 @@ Only Jochen, Felix, Sarah, Mel, Rocco, Glenn, Pati, and Mike McNair should have 
 Add a README to each folder too please.
 
 <h2>Seismic forward modeling</h2>
-Deepwave: https://ausargeo.com/deepwave/
-PyGimLi: https://www.pygimli.org/_examples_auto/2_seismics/index.html
-SpecFEM2D: https://github.com/SPECFEM/specfem2d
+
+- Deepwave (Glenn): https://ausargeo.com/deepwave/
+- PyGimLi (Jochen): https://www.pygimli.org/_examples_auto/2_seismics/index.html
+- SpecFEM2D (Sarah): https://github.com/SPECFEM/specfem2d
