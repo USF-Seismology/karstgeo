@@ -1,0 +1,363 @@
+# velocity_model_north_florida_karst.yaml
+#
+# Nominal shallow seismic velocity model for inland northern Florida karst.
+#
+# Conceptual geology:
+#
+#   surface
+#   │
+#   ├── unsaturated sand / sandy soil
+#   │
+#   ├── water table at ~5 m depth
+#   │
+#   ├── saturated sand
+#   │
+#   ├── saturated clayey residuum / epikarst
+#   │
+#   ├── karstified Florida limestone
+#   │
+#   └── water-filled cave / conduit embedded in limestone
+#
+# Intended use:
+#
+#   - 2-D elastic / acoustic-elastic synthetic modelling
+#   - shallow active-source survey design
+#   - testing detectability of a water-filled karst void
+#   - generating synthetic MiniSEED and diagnostic figures
+#
+# Important:
+#
+#   This is a starting model, not a site-calibrated model.
+#   Treat all velocities as adjustable parameters.
+
+model:
+  name: north_florida_karst_water_filled_void_nominal
+  description: >
+    Layered shallow velocity model representing sand over saturated
+    epikarst/residuum over karstified Florida limestone, with a
+    permanently water-filled circular void.
+
+  coordinate_system:
+    type: local_cartesian_2d
+    horizontal_axis: x
+    vertical_axis: z
+    x_units: m
+    z_units: m
+    z_positive: down
+    surface_z_m: 0.0
+
+  notes:
+    - Depths are measured positive downward from ground surface.
+    - The water table is represented explicitly at 5 m depth.
+    - The void is water-filled at all times.
+    - Vs inside the void is set to a small non-zero numerical value rather than zero.
+    - Density contrast between limestone and water is important for scattering and gravity modelling.
+    - This model is intended for sensitivity testing, not final interpretation.
+
+# ----------------------------------------------------------------------
+# Global modelling parameters
+# ----------------------------------------------------------------------
+
+domain:
+  # Suggested computational domain.
+  #
+  # The model should extend laterally beyond the receiver spread and shot
+  # positions to reduce edge reflections.
+  #
+  # For a 36-node SmartSolo line with ~4 m spacing, the receiver spread is
+  # ~140 m long. A 240 m wide domain gives room for off-end shots and
+  # absorbing boundaries.
+  x_min_m: -120.0
+  x_max_m: 120.0
+
+  # Depth should exceed target depth by at least 2x if possible.
+  # For a void centred at 18 m and target imaging to ~30 m, 60 m depth is
+  # a reasonable modelling domain.
+  z_min_m: 0.0
+  z_max_m: 60.0
+
+  # Grid spacing.
+  #
+  # For finite-difference modelling, dx and dz must be small enough to
+  # resolve the shortest wavelength:
+  #
+  #   wavelength_min = v_min / f_max
+  #
+  # With v_min ~50 m/s inside the numerical water-filled void and high
+  # frequencies, this can become restrictive. For practical modelling,
+  # either smooth the void boundary or use a somewhat higher numerical Vs.
+  dx_m: 0.25
+  dz_m: 0.25
+
+water_table:
+  depth_m: 5.0
+  description: >
+    Approximate depth to water table. Materials below this depth are
+    treated as saturated unless otherwise specified.
+
+# ----------------------------------------------------------------------
+# Layered background model
+# ----------------------------------------------------------------------
+
+layers:
+
+  - name: unsaturated_sand
+    description: >
+      Loose to moderately compact surficial quartz sand and sandy soil
+      above the water table.
+
+    z_top_m: 0.0
+    z_bottom_m: 5.0
+
+    vp_mps: 450.0
+    vs_mps: 180.0
+    rho_kgm3: 1700.0
+
+    expected_range:
+      vp_mps: [300.0, 800.0]
+      vs_mps: [100.0, 300.0]
+      rho_kgm3: [1550.0, 1850.0]
+
+    comments:
+      - Low Vp reflects partial saturation and unconsolidated sand.
+      - Vs is controlled mostly by grain framework and compaction.
+      - This layer may produce strong near-surface statics.
+
+  - name: saturated_sand
+    description: >
+      Saturated sand below the water table. P-wave velocity increases
+      substantially relative to dry sand, while S-wave velocity changes
+      more modestly.
+
+    z_top_m: 5.0
+    z_bottom_m: 10.0
+
+    vp_mps: 1600.0
+    vs_mps: 300.0
+    rho_kgm3: 1950.0
+
+    expected_range:
+      vp_mps: [1450.0, 1900.0]
+      vs_mps: [200.0, 500.0]
+      rho_kgm3: [1850.0, 2050.0]
+
+    comments:
+      - Vp is close to water velocity because the pore space is saturated.
+      - Vs remains much lower than Vp because pore water does not support shear.
+      - This layer may create a strong refractor or velocity-gradient zone.
+
+  - name: saturated_clayey_epikarst_residuum
+    description: >
+      Heterogeneous saturated clayey sand, clay-rich residuum, weathered
+      limestone, and epikarst. This is likely the most laterally variable
+      part of the shallow section.
+
+    z_top_m: 10.0
+    z_bottom_m: 15.0
+
+    vp_mps: 1850.0
+    vs_mps: 550.0
+    rho_kgm3: 2050.0
+
+    expected_range:
+      vp_mps: [1400.0, 2400.0]
+      vs_mps: [300.0, 900.0]
+      rho_kgm3: [1900.0, 2200.0]
+
+    comments:
+      - Represents the transition from clastic cover into carbonate rock.
+      - May include clay plugs, pinnacled limestone, small solution features, and weathered zones.
+      - This layer may be discontinuous or strongly laterally heterogeneous.
+      - For more realistic modelling, consider adding random velocity perturbations here.
+
+  - name: karstified_limestone
+    description: >
+      Background karstified Florida limestone below the epikarst/residuum.
+      This represents the host rock for the water-filled void.
+
+    z_top_m: 15.0
+    z_bottom_m: 60.0
+
+    vp_mps: 3000.0
+    vs_mps: 1300.0
+    rho_kgm3: 2250.0
+
+    expected_range:
+      vp_mps: [2200.0, 4500.0]
+      vs_mps: [800.0, 2200.0]
+      rho_kgm3: [2100.0, 2500.0]
+
+    porosity:
+      nominal_fraction: 0.28
+      expected_range_fraction: [0.20, 0.35]
+      description: >
+        Approximate matrix/vuggy porosity for karstified limestone.
+        This does not include the discrete mapped water-filled void.
+
+    comments:
+      - Limestone velocity depends strongly on porosity, saturation, cementation, and karstification.
+      - Conduits and fractures may dominate hydraulic behaviour even if volumetric porosity is modest.
+      - This layer should not be interpreted as homogeneous in real data.
+
+# ----------------------------------------------------------------------
+# Water-filled void
+# ----------------------------------------------------------------------
+
+voids:
+
+  - name: water_filled_cave
+    description: >
+      Permanently water-filled karst void embedded in the limestone.
+      Represented as a roughly circular 2-D cross-section.
+
+    geometry:
+      type: circle
+      centre_x_m: 0.0
+      centre_z_m: 18.0
+      diameter_m: 6.0
+      radius_m: 3.0
+
+      # Therefore:
+      #
+      #   top of void    = 15 m depth
+      #   centre depth   = 18 m depth
+      #   bottom of void = 21 m depth
+      #
+      # This matches the assumed cave top at ~15 m and diameter ~6 m.
+
+    fill:
+      type: water
+      vp_mps: 1480.0
+
+      # True fluid shear velocity is zero, but many elastic finite-difference
+      # solvers do not behave well with Vs = 0. A small numerical Vs is often
+      # used to stabilise the calculation while keeping the inclusion
+      # effectively fluid-like.
+      vs_mps: 50.0
+
+      rho_kgm3: 1000.0
+
+      expected_range:
+        vp_mps: [1450.0, 1530.0]
+        vs_mps: [0.0, 100.0]
+        rho_kgm3: [995.0, 1025.0]
+
+    boundary:
+      smoothing_m: 0.5
+      description: >
+        Optional smoothing distance around the void boundary. Smoothing
+        reduces numerical artefacts caused by sharp velocity and density
+        contrasts on a Cartesian grid.
+
+    comments:
+      - The cave is less visible to P waves than an air-filled void, because water Vp is not extremely low.
+      - The cave should be very disruptive to S waves because water cannot transmit shear.
+      - Expected signals include scattering, converted phases, amplitude shadowing, and local travel-time delays.
+      - Gravity response should be significant because water is much less dense than limestone.
+
+# ----------------------------------------------------------------------
+# Optional heterogeneity
+# ----------------------------------------------------------------------
+
+heterogeneity:
+  enabled: true
+
+  epikarst_random_perturbations:
+    enabled: true
+    target_layer: saturated_clayey_epikarst_residuum
+
+    vp_std_fraction: 0.15
+    vs_std_fraction: 0.20
+    rho_std_fraction: 0.05
+
+    horizontal_correlation_length_m: 5.0
+    vertical_correlation_length_m: 2.0
+
+    comments:
+      - Adds realistic lateral roughness to the epikarst/residuum.
+      - Useful for testing whether the void remains detectable in a messy background.
+      - Set enabled=false for clean synthetic benchmark tests.
+
+  limestone_random_perturbations:
+    enabled: true
+    target_layer: karstified_limestone
+
+    vp_std_fraction: 0.08
+    vs_std_fraction: 0.10
+    rho_std_fraction: 0.03
+
+    horizontal_correlation_length_m: 8.0
+    vertical_correlation_length_m: 4.0
+
+    comments:
+      - Represents vuggy/fractured limestone heterogeneity outside the main void.
+      - Keep perturbations modest initially so the main void response is interpretable.
+
+# ----------------------------------------------------------------------
+# Suggested survey geometry for this model
+# ----------------------------------------------------------------------
+
+survey_geometry:
+  receiver_line:
+    description: >
+      Fixed SmartSolo baseline array. Thirty-six nodes at regular 4 m
+      spacing gives a 140 m aperture, which is appropriate for imaging
+      to roughly 30 m depth.
+
+    receiver_count: 36
+    spacing_m: 4.0
+    first_receiver_x_m: -70.0
+    last_receiver_x_m: 70.0
+    receiver_z_m: 0.0
+
+  shots:
+    description: >
+      Suggested active-source shot positions including off-end shots and
+      shots at receiver locations.
+
+    off_end_shots_m: [-100.0, -85.0, 85.0, 100.0]
+    along_line_shot_spacing_m: 8.0
+    along_line_x_min_m: -70.0
+    along_line_x_max_m: 70.0
+    shot_z_m: 0.0
+
+  cabled_geophone_option:
+    description: >
+      Optional movable 48-channel cabled spread for higher spatial sampling.
+      This can be rolled along the SmartSolo line.
+
+    receiver_count: 48
+    spacing_m: 1.0
+    spread_length_m: 47.0
+    suggested_roll_positions_m: [-48.0, 0.0, 48.0]
+
+# ----------------------------------------------------------------------
+# Modelling notes
+# ----------------------------------------------------------------------
+
+modelling_notes:
+  recommended_wavelet:
+    type: ricker
+    dominant_frequency_hz: 80.0
+    expected_range_hz: [40.0, 150.0]
+
+  absorbing_boundaries:
+    thickness_m: 10.0
+    comments:
+      - Use absorbing boundaries on the sides and bottom.
+      - Avoid placing sources or receivers inside the absorbing boundary.
+
+  numerical_stability:
+    comments:
+      - Check CFL stability for chosen dx, dz, dt, and maximum velocity.
+      - Check numerical dispersion for the highest frequency of interest.
+      - The small Vs used inside the water-filled void may control the minimum wavelength.
+      - Consider smoothing or slightly increasing void Vs if the model becomes unstable.
+
+  interpretation_expectations:
+    - Strong Vp increase at the water table may dominate first arrivals.
+    - The saturated sand/epikarst/limestone transitions may generate refractions and reflections.
+    - The water-filled void should produce weaker P-wave contrast than an air-filled void.
+    - S-wave disruption, scattering, and amplitude loss may be more diagnostic than simple P-wave travel-time picks.
+    - Joint interpretation with gravity would be valuable because of the strong density contrast.
+
