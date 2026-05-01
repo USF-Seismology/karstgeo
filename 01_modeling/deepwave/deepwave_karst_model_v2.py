@@ -120,9 +120,16 @@ def build_layered_model(
     z: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, dict[str, float]]:
     """
-    Build vp, density, and acoustic impedance models.
+    Build Vp, density, and acoustic impedance models.
 
-    Density is used for graphics/documentation. deepwave.scalar uses vp only.
+    Supports cave geometries:
+      - circle
+      - rectangle
+
+    Notes
+    -----
+    deepwave.scalar() uses Vp only. Density is included here for
+    graphics, impedance estimates, and documentation of the model.
     """
     model_cfg = cfg["earth_model"]
     cave_cfg = cfg["cave"]
@@ -136,6 +143,7 @@ def build_layered_model(
         z_min = float(layer["z_min_m"])
         z_max = float(layer["z_max_m"])
         mask = (Z >= z_min) & (Z < z_max)
+
         vp[mask] = float(layer["vp_m_s"])
         rho[mask] = float(layer["density_kg_m3"])
 
@@ -143,34 +151,80 @@ def build_layered_model(
         g = model_cfg["gradient"]
         z0 = float(g.get("z0_m", 0.0))
         grad = float(g.get("vp_gradient_m_s_per_m", 0.0))
+
         mask = Z >= z0
         vp[mask] += (Z[mask] - z0) * grad
 
-    diameter = float(cave_cfg["diameter_m"])
-    radius = diameter / 2.0
-    centre_x = float(cave_cfg["centre_x_m"])
-    centre_z = float(cave_cfg["centre_depth_m"])
+    cave_geom = cave_cfg.get("geometry", "circle").lower()
 
-    cave_mask = (X - centre_x) ** 2 + (Z - centre_z) ** 2 <= radius ** 2
+    if cave_geom == "circle":
+        diameter = float(cave_cfg["diameter_m"])
+        radius = diameter / 2.0
+        centre_x = float(cave_cfg["centre_x_m"])
+        centre_z = float(cave_cfg["centre_depth_m"])
 
-    # Water-filled cave properties. These are configurable but default to:
-    # Vp ~1480 m/s and density ~1000 kg/m3.
+        cave_mask = (
+            (X - centre_x) ** 2
+            + (Z - centre_z) ** 2
+            <= radius ** 2
+        )
+
+        cave_meta = {
+            "geometry": "circle",
+            "centre_x_m": centre_x,
+            "centre_depth_m": centre_z,
+            "diameter_m": diameter,
+            "radius_m": radius,
+            "top_depth_m": centre_z - radius,
+            "bottom_depth_m": centre_z + radius,
+        }
+
+    elif cave_geom == "rectangle":
+        x_min = float(cave_cfg["x_min_m"])
+        x_max = float(cave_cfg["x_max_m"])
+        z_min = float(cave_cfg["z_min_m"])
+        z_max = float(cave_cfg["z_max_m"])
+
+        cave_mask = (
+            (X >= x_min) & (X <= x_max)
+            & (Z >= z_min) & (Z <= z_max)
+        )
+
+        cave_meta = {
+            "geometry": "rectangle",
+            "x_min_m": x_min,
+            "x_max_m": x_max,
+            "z_min_m": z_min,
+            "z_max_m": z_max,
+            "centre_x_m": 0.5 * (x_min + x_max),
+            "centre_depth_m": 0.5 * (z_min + z_max),
+            "width_m": x_max - x_min,
+            "height_m": z_max - z_min,
+            "diameter_m": max(x_max - x_min, z_max - z_min),
+            "radius_m": 0.5 * max(x_max - x_min, z_max - z_min),
+            "top_depth_m": z_min,
+            "bottom_depth_m": z_max,
+        }
+
+    else:
+        raise ValueError(
+            f"Unsupported cave geometry '{cave_geom}'. "
+            "Use 'circle' or 'rectangle'."
+        )
+
+    # Water-filled cave properties.
+    # For scalar Deepwave, only Vp affects propagation.
     vp[cave_mask] = float(cave_cfg["water"]["vp_m_s"])
     rho[cave_mask] = float(cave_cfg["water"]["density_kg_m3"])
 
     impedance = vp * rho
 
-    cave_meta = {
-        "centre_x_m": centre_x,
-        "centre_depth_m": centre_z,
-        "diameter_m": diameter,
-        "radius_m": radius,
-        "top_depth_m": centre_z - radius,
-        "bottom_depth_m": centre_z + radius,
-    }
-
-    return vp.astype(np.float32), rho.astype(np.float32), impedance.astype(np.float32), cave_meta
-
+    return (
+        vp.astype(np.float32),
+        rho.astype(np.float32),
+        impedance.astype(np.float32),
+        cave_meta,
+    )
 
 # -----------------------------
 # Modelling

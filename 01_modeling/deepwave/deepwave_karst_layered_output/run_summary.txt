@@ -9,11 +9,18 @@ SmartSolo nodes: 36
 Shots: 42
 
 Cave:
-  centre_x_m: 70.0
-  centre_depth_m: 18.0
-  diameter_m: 6.0
-  radius_m: 3.0
+  geometry: rectangle
+  x_min_m: 145.0
+  x_max_m: 155.0
+  z_min_m: 15.0
+  z_max_m: 20.0
+  centre_x_m: 150.0
+  centre_depth_m: 17.5
+  width_m: 10.0
+  height_m: 5.0
+  diameter_m: 10.0
+  radius_m: 5.0
   top_depth_m: 15.0
-  bottom_depth_m: 21.0
+  bottom_depth_m: 20.0
 
 Note: density is used for graphics/documentation only in scalar modelling.

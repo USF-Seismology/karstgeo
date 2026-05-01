@@ -7,3 +7,5 @@ https://ausargeo.com/deepwave/
 And an example:
 https://ausargeo.com/deepwave/example_forward_model
 https://github.com/ar4/deepwave/blob/master/docs/example_forward_model.py
+
+The Marmousi data are at: https://www.geoazur.fr/WIND/pub/nfs/FWI-DATA/GEOMODELS/Marmousi/vp.bin

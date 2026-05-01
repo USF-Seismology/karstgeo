@@ -1,0 +1,109 @@
+# karst_survey_config.yml
+#
+# Recommended model complexity:
+#   Use 5 layers for the first serious survey-design runs:
+#     1. very shallow loose soil / fill
+#     2. weathered sand / regolith
+#     3. weathered limestone / epikarst
+#     4. competent limestone
+#     5. deeper limestone
+#
+# This is complex enough to create realistic near-surface refraction and
+# scattering, but not so complex that it becomes unidentifiable from one line.
+
+compute:
+  # null means use all available CPU cores.
+  # Deepwave scalar does not currently use Apple MPS for this kernel.
+  num_threads: null
+
+output:
+  dir: deepwave_karst_layered_output
+  write_mseed: true
+  network: SY
+  channel: BHZ
+  starttime: "2026-01-01T00:00:00"
+
+domain:
+  x_min_m: -30.0
+  x_max_m: 170.0
+  z_min_m: 0.0
+  z_max_m: 55.0
+
+deepwave:
+  dx_m: 0.25
+  dt_s: 0.00010
+  nt: 4000
+  source_frequency_hz: 60.0
+  accuracy: 6
+  pml_width: 30
+
+survey:
+  smartsolo:
+    n_nodes: 36
+    spacing_m: 4.0
+    start_m: 0.0
+    receiver_depth_m: 1.0
+
+  shots:
+    # Good refraction design:
+    #   - off-end shots help constrain deeper refractors
+    #   - node shots improve reciprocal coverage
+    #   - far shots increase long-offset coverage
+    include_node_shots: true
+    source_depth_m: 1.0
+    extra_shots_m: [-24.0, -16.0, -8.0, 148.0, 156.0, 164.0]
+
+    # Optional additional regular shots. Set to null to disable.
+    regular_spacing_m: null
+    regular_start_m: 0.0
+    regular_end_m: 140.0
+
+  cabled:
+    enabled: true
+    n_channels: 48
+    spacing_m: 1.0
+    # Rolling dense spreads, 1 m spacing over ~47 m, overlapping.
+    spread_starts_m: [0.0, 23.0, 46.0, 69.0, 92.0]
+
+earth_model:
+  background:
+    vp_m_s: 3600.0
+    density_kg_m3: 2280.0
+
+  layers:
+    - name: unsaturated_limestone
+      z_min_m: 0.0
+      z_max_m: 5.0
+      vp_m_s: 1600.0
+      vs_m_s: 800.0
+      density_kg_m3: 2050.0
+      qkappa: 80
+      qmu: 30
+
+    - name: saturated_limestone
+      z_min_m: 5.0
+      z_max_m: 50.0
+      vp_m_s: 3600.0
+      vs_m_s: 1800.0
+      density_kg_m3: 2280.0
+      qkappa: 100
+      qmu: 40
+
+  gradient:
+    enabled: false
+
+cave:
+  geometry: rectangle
+
+  x_min_m: 145.0
+  x_max_m: 155.0
+  z_min_m: 15.0
+  z_max_m: 20.0
+
+  water:
+    vp_m_s: 1500.0
+    vs_m_s: 0.0
+    density_kg_m3: 1000.0
+    qkappa: 9999
+    qmu: 9999
+
