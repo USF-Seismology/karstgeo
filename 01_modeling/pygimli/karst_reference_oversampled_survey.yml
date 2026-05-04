@@ -1,0 +1,136 @@
+compute:
+  num_threads: null
+output:
+  dir: karst_reference_oversampled_output
+  write_mseed: true
+  network: SY
+  channel: BHZ
+  starttime: '2026-01-01T00:00:00'
+domain:
+  x_min_m: -125.0
+  x_max_m: 125.0
+  z_min_m: 0.0
+  z_max_m: 55.0
+deepwave:
+  dx_m: 0.25
+  dt_s: 0.0001
+  nt: 4000
+  source_frequency_hz: 60.0
+  accuracy: 6
+  pml_width: 30
+survey:
+  smartsolo:
+    enabled: false
+    n_nodes: 36
+    spacing_m: 4.0
+    start_m: -70.0
+    receiver_depth_m: 1.0
+    description: Not modelled separately in the oversampled reference survey. Equivalent
+      to selecting every 4th receiver from the 1 m cabled array over approximately
+      -70 to +70 m.
+  shots:
+    include_node_shots: false
+    source_depth_m: 1.0
+    extra_shots_m: []
+    regular_spacing_m: 1.0
+    regular_start_m: -100.0
+    regular_end_m: 100.0
+    description: Oversampled reference shot line centred on the expected cave centre.
+      Shot positions are -100, -99, ..., 0, ..., +99, +100 m.
+  cabled:
+    enabled: true
+    n_channels: 151
+    spacing_m: 1.0
+    start_m: -75.0
+    receiver_depth_m: 1.0
+    description: Oversampled reference receiver line centred on the expected cave
+      centre. Receiver positions are -75, -74, ..., 0, ..., +74, +75 m.
+earth_model:
+  background:
+    vp_m_s: 3600.0
+    density_kg_m3: 2280.0
+  layers:
+  - name: unsaturated_limestone
+    z_min_m: 0.0
+    z_max_m: 5.0
+    vp_m_s: 1600.0
+    vs_m_s: 800.0
+    density_kg_m3: 2050.0
+    qkappa: 80
+    qmu: 30
+  - name: saturated_limestone
+    z_min_m: 5.0
+    z_max_m: 50.0
+    vp_m_s: 3600.0
+    vs_m_s: 1800.0
+    density_kg_m3: 2280.0
+    qkappa: 100
+    qmu: 40
+  gradient:
+    enabled: false
+cave:
+  geometry: rectangle
+  x_min_m: -5.0
+  x_max_m: 5.0
+  z_min_m: 15.0
+  z_max_m: 20.0
+  water:
+    vp_m_s: 1500.0
+    vs_m_s: 0.0
+    density_kg_m3: 1000.0
+    qkappa: 9999
+    qmu: 9999
+  description: Water-filled rectangular cave centred at x=0 m, with top at 15 m depth
+    and bottom at 20 m depth.
+coordinate_convention:
+  x_m: horizontal distance along survey line; x=0 is expected cave centre
+  z_m: positive depth below ground surface
+  array_center_x_m: 0.0
+  cave_center_x_m: 0.0
+pygimli:
+  mesh_quality: 34.0
+  mesh_area_m2: 1.0
+  cave_mesh_area_m2: 0.05
+  cave_buffer_m: 10.0
+  cave_buffer_mesh_area_m2: 0.1
+  noise_level_relative: 0.001
+  noise_abs_s: 0.0005
+  error_relative: 0.03
+  error_abs_s: 0.001
+  use_cabled_receivers: true
+  use_smartsolo_receivers: false
+  use_extra_shots: false
+  use_node_shots: false
+  use_regular_shots: true
+  inversion:
+    run: true
+    sec_nodes: 2
+    para_max_cell_size_m2: 10.0
+    max_iter: 8
+    lam: 20.0
+  decimation_experiments:
+    receiver_spacings_m:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    - 10
+    shot_spacings_m:
+    - 1
+    - 2
+    - 4
+    - 5
+    - 10
+    receiver_halfwidths_m:
+    - 25
+    - 35
+    - 50
+    - 75
+    shot_halfwidths_m:
+    - 40
+    - 60
+    - 80
+    - 100
+    description: Generate the full 1 m shot/receiver travel-time table first, then
+      subset by shot spacing, receiver spacing, and aperture for survey-design tests.
