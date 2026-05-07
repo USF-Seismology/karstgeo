@@ -1,0 +1,83 @@
+# cave_survey.yml
+#
+# Shared configuration for SPECFEM2D cave-survey post-processing.
+# Adjust paths to point at the actual model run directories on CIRCE.
+
+project:
+  name: cave_geophysics_specfem2d
+  description: Betsy gun vs sledgehammer source comparison over known mapped cave
+
+survey:
+  line_length_m: 300.0
+  shot_spacing_m: 1.0
+  receiver_spacing_m: 0.5
+
+  # Suggested geometry for 300 m line:
+  first_shot_x_m: 0.5
+  n_shots: 300
+
+  first_receiver_x_m: 0.0
+  n_receivers: 601
+
+  # Vertical receiver/source coordinate used only for metadata/plots.
+  receiver_z_m: 0.0
+  source_z_m: 0.0
+
+time:
+  dt_s: 2.0e-5
+  t0_s: 2.0e-5
+
+cave:
+  # Replace with known/mapped cave geometry.
+  x_min_m: 145.0
+  x_max_m: 155.0
+  z_min_m: 15.0
+  z_max_m: 20.0
+
+mesh:
+  dx_m: 0.5
+  comment: "0.5 m starting mesh; refine if SPECFEM resolution checks flag inadequate points per wavelength."
+
+models:
+  betsy:
+    root: /path/to/betsy_model_run
+    survey_output: SURVEY_OUTPUT
+    label: Betsy gun source
+    source_function_file: /path/to/geopark_betsy_source_time_function.txt
+
+  hammer:
+    root: /path/to/hammer_model_run
+    survey_output: SURVEY_OUTPUT
+    label: Sledgehammer source
+    source_function_file: /path/to/geopark_hammer_source_time_function.txt
+
+components:
+  X:
+    su_file: Ux_file_single_v.su
+    sem_channel: BXX
+    label: horizontal X
+  Z:
+    su_file: Uz_file_single_v.su
+    sem_channel: BXZ
+    label: vertical Z
+
+output:
+  directory: processed_specfem_outputs
+  segy_x_dir: SEGY_X
+  segy_z_dir: SEGY_Z
+  figures_dir: FIGURES
+  mseed_dir: MSEED
+  numpy_dir: NUMPY
+
+plotting:
+  trace_scale: 0.8
+  clip_percentile: 98
+  t_min_s: 0.0
+  t_max_s: 0.15
+  offset_min_m: -75.0
+  offset_max_m: 75.0
+  dpi: 160
+
+interfaces:
+  # Optional SPECFEM2D interfaces file for geometry plotting.
+  file: /path/to/interfaces_mod15_topography.dat

@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "specfem-segy-tools"
+version = "0.2.0"
+description = "Separated SPECFEM2D conversion tools and downstream SEG-Y/ObsPy gather tools"
+requires-python = ">=3.9"
+dependencies = ["numpy", "matplotlib", "pyyaml", "obspy", "scipy"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["specfem_tools*", "segy_tools*"]
