@@ -39,7 +39,7 @@ survey:
       Shot positions are -100, -99, ..., 0, ..., +99, +100 m.
   cabled:
     enabled: true
-    n_channels: 301
+    n_channels: 601
     spacing_m: 0.5
     start_m: -150.0
     receiver_depth_m: 0.2
@@ -93,10 +93,14 @@ pygimli:
   cave_mesh_area_m2: 0.05
   cave_buffer_m: 10.0
   cave_buffer_mesh_area_m2: 0.1
-  noise_level_relative: 0.0001
-  noise_abs_s: 0.00005
-  error_relative: 0.003
-  error_abs_s: 0.0001
+  #noise_level_relative: 0.001
+  #noise_abs_s: 0.0005
+  #error_relative: 0.03
+  #error_abs_s: 0.001
+  noise_level_relative: 0.0
+  noise_abs_s: 0.0
+  error_relative: 0.0
+  error_abs_s: 0.0
   use_cabled_receivers: true
   use_smartsolo_receivers: false
   use_extra_shots: false
