@@ -10,7 +10,7 @@ domain:
   x_min_m: -225.0
   x_max_m: 225.0
   z_min_m: 0.0
-  z_max_m: 55.0
+  z_max_m: 80.0
 deepwave:
   dx_m: 0.25
   dt_s: 0.0001
@@ -19,15 +19,6 @@ deepwave:
   accuracy: 6
   pml_width: 30
 survey:
-  smartsolo:
-    enabled: false
-    n_nodes: 36
-    spacing_m: 4.0
-    start_m: -70.0
-    receiver_depth_m: 1.0
-    description: Not modelled separately in the oversampled reference survey. Equivalent
-      to selecting every 4th receiver from the 1 m cabled array over approximately
-      -70 to +70 m.
   shots:
     include_node_shots: false
     source_depth_m: 0.05
@@ -36,52 +27,88 @@ survey:
     regular_start_m: -150.0
     regular_end_m: 150.0
     description: Oversampled reference shot line centred on the expected cave centre.
-      Shot positions are -100, -99, ..., 0, ..., +99, +100 m.
+      Shot positions are -150, -149, ..., 0, ..., +149, +150 m.
   cabled:
     enabled: true
-    n_channels: 601
+    n_channels: 561
     spacing_m: 0.5
-    start_m: -150.0
-    receiver_depth_m: 0.2
+    start_m: -140.0
+    receiver_depth_m: 0.12
     description: Oversampled reference receiver line centred on the expected cave
-      centre. Receiver positions are -75, -74, ..., 0, ..., +74, +75 m.
+      centre. Receiver positions are -140, -139.5, ..., 0, ..., +139.5, +140 m.
+  smartsolo:
+    enabled: false
+    n_nodes: 36
+    spacing_m: 4.0
+    start_m: -70.0
+    receiver_depth_m: 1.0
+    description: Not modelled separately in the oversampled reference survey. Equivalent
+      to selecting every 4th receiver from the 1 m cabled array over approximately
+      -70 to +70 m.      
 earth_model:
   background:
-    vp_m_s: 3300.0
-    density_kg_m3: 2280.0
+    vp_m_s: 3600.0
+    vs_m_s: 1900.0
+    density_kg_m3: 2350.0
+
   layers:
   - name: unsaturated_limestone
     z_min_m: 0.0
-    z_max_m: 7.0
-    vp_m_s: 1600.0
-    vs_m_s: 800.0
-    density_kg_m3: 2050.0
-    qkappa: 80
-    qmu: 30
-  - name: saturated_limestone
-    z_min_m: 7.0
-    z_max_m: 50.0
-    vp_m_s: 3300.0
-    vs_m_s: 1700.0
-    density_kg_m3: 2280.0
+    z_max_m: 10.0
+    vp_top_m_s: 400.0
+    vp_bottom_m_s: 1500.0
+    vs_top_m_s: 100.0
+    vs_bottom_m_s: 400.0
+    density_top_kg_m3: 1900.0
+    density_bottom_kg_m3: 2100.0
+    qkappa: 60
+    qmu: 25
+
+  - name: saturated_limestone_upper
+    z_min_m: 10.0
+    z_max_m: 35.0
+    vp_top_m_s: 2500.0
+    vp_bottom_m_s: 4200.0
+    vs_top_m_s: 1200.0
+    vs_bottom_m_s: 2200.0
+    density_top_kg_m3: 2200.0
+    density_bottom_kg_m3: 2350.0
     qkappa: 100
     qmu: 40
+
+  - name: saturated_limestone_lower_or_basement
+    z_min_m: 35.0
+    z_max_m: 80.0
+    vp_top_m_s: 4200.0
+    vp_bottom_m_s: 5500.0
+    vs_top_m_s: 2200.0
+    vs_bottom_m_s: 3200.0
+    density_top_kg_m3: 2350.0
+    density_bottom_kg_m3: 2550.0
+    qkappa: 150
+    qmu: 60
+
   gradient:
-    enabled: true
+    enabled: false
+    style: linear_by_layer
+    description: >
+      Each layer may be assigned either constant vp_m_s/vs_m_s/density_kg_m3
+      or top/bottom values. If top/bottom values are present, properties are
+      linearly interpolated with depth within that layer.
 cave:
   geometry: rectangle
-  x_min_m: -5.0
-  x_max_m: 5.0
-  z_min_m: 15.0
-  z_max_m: 20.0
+  x_min_m: -10.0
+  x_max_m: 10.0
+  z_min_m: 12.5
+  z_max_m: 32.5
   water:
-    vp_m_s: 1500.0
+    vp_m_s: 900.0
     vs_m_s: 0.0
     density_kg_m3: 1000.0
     qkappa: 9999
     qmu: 9999
   description: Water-filled rectangular cave centred at x=0 m, with top at 15 m depth
-    and bottom at 20 m depth.
+    and bottom at 20 m depth. But now dimensions made larger, and cave assumed to be partially saturated.
 coordinate_convention:
   x_m: horizontal distance along survey line; x=0 is expected cave centre
   z_m: positive depth below ground surface
@@ -89,18 +116,19 @@ coordinate_convention:
   cave_center_x_m: 0.0
 pygimli:
   mesh_quality: 34.0
-  mesh_area_m2: 1.0
-  cave_mesh_area_m2: 0.05
+  mesh_area_m2: 2.0
+  cave_mesh_area_m2: 2.0
   cave_buffer_m: 10.0
-  cave_buffer_mesh_area_m2: 0.1
+  cave_buffer_mesh_area_m2: 2.0
   #noise_level_relative: 0.001
   #noise_abs_s: 0.0005
   #error_relative: 0.03
   #error_abs_s: 0.001
-  noise_level_relative: 0.0
-  noise_abs_s: 0.0
-  error_relative: 0.0
-  error_abs_s: 0.0
+  noise_level_relative: 0.001
+  noise_abs_s: 0.0001
+  error_relative: 0.001
+  error_abs_s: 0.0001
+  seed: 20260424
   use_cabled_receivers: true
   use_smartsolo_receivers: false
   use_extra_shots: false
@@ -109,11 +137,12 @@ pygimli:
   inversion:
     run: true
     sec_nodes: 2
-    para_max_cell_size_m2: 10.0
+    para_max_cell_size_m2: 5.0
     max_iter: 8
-    lam: 20.0
+    lam: 50.0
   decimation_experiments:
     receiver_spacings_m:
+    - 0.5
     - 1
     - 2
     - 3
@@ -131,10 +160,13 @@ pygimli:
     - 35
     - 50
     - 75
+    - 100
+    - 150
     shot_halfwidths_m:
     - 40
     - 60
     - 80
     - 100
+    - 150
     description: Generate the full 1 m shot/receiver travel-time table first, then
       subset by shot spacing, receiver spacing, and aperture for survey-design tests.
