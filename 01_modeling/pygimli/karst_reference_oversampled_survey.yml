@@ -55,36 +55,36 @@ earth_model:
   - name: unsaturated_limestone
     z_min_m: 0.0
     z_max_m: 10.0
-    vp_top_m_s: 400.0
-    vp_bottom_m_s: 1500.0
-    vs_top_m_s: 100.0
-    vs_bottom_m_s: 400.0
-    density_top_kg_m3: 1900.0
-    density_bottom_kg_m3: 2100.0
+    vp_top_m_s: 1600.0
+    vp_bottom_m_s: 1600.0
+    vs_top_m_s: 800.0
+    vs_bottom_m_s: 800.0
+    density_top_kg_m3: 2050.0
+    density_bottom_kg_m3: 2050.0
     qkappa: 60
     qmu: 25
 
   - name: saturated_limestone_upper
     z_min_m: 10.0
     z_max_m: 35.0
-    vp_top_m_s: 2500.0
-    vp_bottom_m_s: 4200.0
-    vs_top_m_s: 1200.0
-    vs_bottom_m_s: 2200.0
-    density_top_kg_m3: 2200.0
-    density_bottom_kg_m3: 2350.0
+    vp_top_m_s: 3600.0
+    vp_bottom_m_s: 3600.0
+    vs_top_m_s: 1800.0
+    vs_bottom_m_s: 1800.0
+    density_top_kg_m3: 2280.0
+    density_bottom_kg_m3: 2280.0
     qkappa: 100
     qmu: 40
 
   - name: saturated_limestone_lower_or_basement
     z_min_m: 35.0
-    z_max_m: 80.0
-    vp_top_m_s: 4200.0
-    vp_bottom_m_s: 5500.0
-    vs_top_m_s: 2200.0
-    vs_bottom_m_s: 3200.0
-    density_top_kg_m3: 2350.0
-    density_bottom_kg_m3: 2550.0
+    z_max_m: 50.0
+    vp_top_m_s: 4700.0
+    vp_bottom_m_s: 4700.0
+    vs_top_m_s: 2600.0
+    vs_bottom_m_s: 2600.0
+    density_top_kg_m3: 2450.0
+    density_bottom_kg_m3: 2450.0
     qkappa: 150
     qmu: 60
 
@@ -95,20 +95,20 @@ earth_model:
       Each layer may be assigned either constant vp_m_s/vs_m_s/density_kg_m3
       or top/bottom values. If top/bottom values are present, properties are
       linearly interpolated with depth within that layer.
-cave:
+cave: # model C
   geometry: rectangle
   x_min_m: -10.0
   x_max_m: 10.0
-  z_min_m: 12.5
-  z_max_m: 32.5
+  z_min_m: 15.0
+  z_max_m: 25.0
   water:
-    vp_m_s: 900.0
+    vp_m_s: 1500.0
     vs_m_s: 0.0
     density_kg_m3: 1000.0
     qkappa: 9999
     qmu: 9999
   description: Water-filled rectangular cave centred at x=0 m, with top at 15 m depth
-    and bottom at 20 m depth. But now dimensions made larger, and cave assumed to be partially saturated.
+    and bottom at 25 m depth. But now dimensions made larger, and cave assumed to be partially saturated.
 coordinate_convention:
   x_m: horizontal distance along survey line; x=0 is expected cave centre
   z_m: positive depth below ground surface
@@ -116,10 +116,10 @@ coordinate_convention:
   cave_center_x_m: 0.0
 pygimli:
   mesh_quality: 34.0
-  mesh_area_m2: 2.0
-  cave_mesh_area_m2: 2.0
+  mesh_area_m2: 0.5
+  cave_mesh_area_m2: 0.5
   cave_buffer_m: 10.0
-  cave_buffer_mesh_area_m2: 2.0
+  cave_buffer_mesh_area_m2: 0.5
   #noise_level_relative: 0.001
   #noise_abs_s: 0.0005
   #error_relative: 0.03
