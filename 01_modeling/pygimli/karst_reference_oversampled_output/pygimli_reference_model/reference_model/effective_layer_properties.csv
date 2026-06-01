@@ -1,0 +1,4 @@
+marker,name,z_min_m,z_max_m,z_mid_m,vp_effective_m_s,vs_effective_m_s,density_effective_kg_m3,qkappa,qmu
+1,unsaturated_limestone,0.0,10.0,5.0,950.0,250.0,2000.0,60.0,25.0
+2,saturated_limestone_upper,10.0,35.0,22.5,3350.0,1700.0,2275.0,100.0,40.0
+3,saturated_limestone_lower_or_basement,35.0,80.0,57.5,4850.0,2700.0,2450.0,150.0,60.0
