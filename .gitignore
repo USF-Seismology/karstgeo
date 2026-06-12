@@ -217,3 +217,5 @@ __marimo__/
 02_processing/geode_time_metadata_outputs/geode_file_times.csv
 02_processing/geode_time_metadata_outputs/jochen_field_notes_metadata_tables_with_geode_times.xlsx
 02_processing/test_plot.png
+__pycache__/
+*.pyc
