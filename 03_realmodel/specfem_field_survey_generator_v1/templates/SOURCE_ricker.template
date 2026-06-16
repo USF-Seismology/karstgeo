@@ -1,0 +1,17 @@
+## SPECFEM2D SOURCE generated from SOURCE_ricker.template
+source_surf                     = .true.
+xs                              = {xs}
+zs                              = 50.
+source_type                     = {source_type}
+time_function_type              = 1
+name_of_source_file             = YYYYYYYYYYYYYYYYYY
+burst_band_width                = 0.
+f0                              = {f0}
+tshift                          = {tshift}
+anglesource                     = {anglesource}
+Mxx                             = {Mxx}
+Mzz                             = {Mzz}
+Mxz                             = {Mxz}
+factor                          = {factor}
+vx                              = 0.0
+vz                              = 0.0

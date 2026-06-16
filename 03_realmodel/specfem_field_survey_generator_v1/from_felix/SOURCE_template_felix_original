@@ -1,0 +1,33 @@
+## Source 1
+#
+# SOURCE_template for Mod 15 survey (Realistic Field Geometry).
+# The token XS_PLACEHOLDER is replaced with the actual xs value
+# for each shot by run_survey.sh before calling xspecfem2D.
+# Do not edit XS_PLACEHOLDER — edit run_survey.sh instead.
+#
+# xs ranges from 82.5 m (shot 1) to 162.5 m (shot 41), 2m spacing.
+# source_surf = .true. places the source on the free surface at the
+# given xs regardless of topography.
+#
+# anglesource = 180.0: vertical downward force (models a hammer blow).
+#   Z component will be symmetric about each source position.
+#   X component will be antisymmetric (flips polarity at source).
+#
+# High-frequency 300Hz Ricker wavelet. tshift properly set to 0.004.
+#
+source_surf                     = .true.
+xs                              = XS_PLACEHOLDER
+zs                              = 50.
+source_type                     = 1
+time_function_type              = 1
+name_of_source_file             = YYYYYYYYYYYYYYYYYY
+burst_band_width                = 0.
+f0                              = 300.0
+tshift                          = 0.004
+anglesource                     = 180.0
+Mxx                             = 1.
+Mzz                             = 1.
+Mxz                             = 0.
+factor                          = 1.d10
+vx                              = 0.0
+vz                              = 0.0

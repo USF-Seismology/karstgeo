@@ -1,0 +1,24 @@
+{
+  "jochen_xlsx": "inputs/spreadsheets/jochen_field_notes_metadata_tables_with_geode_times.xlsx",
+  "nodal_xlsx": "inputs/spreadsheets/glenn_smartsolo_nodal_metadata_with_estimated_coords.xlsx",
+  "topography": "inputs/topography/T1_LiDAR_profile.csv",
+  "refraction_sheets": [
+    "T1_1m_Refraction",
+    "T1_2m_Refraction",
+    "T3_1m_Refraction",
+    "T4_1m_Refraction"
+  ],
+  "streamer_sheets": [
+    "T1_Streamer_MASW",
+    "T2_Streamer_MASW"
+  ],
+  "nodal_geometries": [
+    "T1_N1_geometry",
+    "T1_N2_geometry",
+    "T3_N4_geometry"
+  ],
+  "combined_components": [],
+  "n_surveys": 9,
+  "n_receiver_components": 8,
+  "n_stations_files": 7
+}

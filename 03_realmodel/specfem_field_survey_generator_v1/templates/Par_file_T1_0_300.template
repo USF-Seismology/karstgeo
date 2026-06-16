@@ -1,0 +1,268 @@
+#
+# Simulation input parameters
+# T1_1m_spacing (Realistic Topography): Single diagnostic test shot at xs = 122.5m.
+#         Vertical downward source (anglesource=180), 72 receivers from x=87m to 158m.
+#         Unsaturated limestone velocities (Vp=1600, Vs=800).
+#
+# Changes for 0.5m Super-Mesh:
+#   - Grid resolution doubled: dx, dz = 0.5m (nx=600, nz=100 total)
+#   - Source: f0 = 300.0 Hz (lambda = 2.66m) to cleanly resolve expanded 10x20m void.
+#   - Time step: dt = 0.8d-5s, NSTEP = 15000 to maintain CFL and 0.120s record length.
+#   - Output images enabled to visualize 300Hz wavefield scattering.
+#
+# Physics:
+#   anglesource = 180 (vertical downward force)
+#   Mat 1 sat. limestone:    Vp=3600, Vs=1800, rho=2280, Qkappa=100, Qmu=40
+#   Mat 2 unsat. limestone:  Vp=1600, Vs= 800, rho=2050, Qkappa= 80, Qmu=30
+#   Mat 3 water void:        Vp=1500, Vs=   0, rho=1000, Qkappa=9999,Qmu=9999
+#
+#-----------------------------------------------------------
+
+title                           = T1_1m_spacing: Single test shot at 122.5m, 72 topography receivers, water table at 40m
+
+SIMULATION_TYPE                 = 1
+NOISE_TOMOGRAPHY                = 0
+SAVE_FORWARD                    = .false.
+
+NPROC                           = 16
+
+#-----------------------------------------------------------
+#
+# Time stepping
+#
+# dt=0.8d-5s, NSTEP=15000 --> total time = 0.120s
+# (Adjusted for 0.5m grid stability)
+#
+#-----------------------------------------------------------
+NSTEP                           = 50000
+DT                              = 0.8d-5
+
+time_stepping_scheme            = 1
+P_SV                            = .true.
+AXISYM                          = .false.
+
+#-----------------------------------------------------------
+# Mesh
+#-----------------------------------------------------------
+
+PARTITIONING_TYPE               = 3
+NGNOD                           = 9
+setup_with_binary_database      = 0
+MODEL                           = default
+SAVE_MODEL                      = default
+
+#-----------------------------------------------------------
+# Attenuation (unchanged from Mod 11)
+#-----------------------------------------------------------
+
+ATTENUATION_VISCOELASTIC        = .true.
+ATTENUATION_VISCOACOUSTIC       = .false.
+N_SLS                           = 3
+ATTENUATION_f0_REFERENCE        = 300.0
+READ_VELOCITIES_AT_f0           = .true.
+USE_SOLVOPT                     = .false.
+ATTENUATION_PORO_FLUID_PART     = .false.
+Q0_poroelastic                  = 1
+freq0_poroelastic                = 10
+UNDO_ATTENUATION_AND_OR_PML     = .false.
+NT_DUMP_ATTENUATION             = 500
+NO_BACKWARD_RECONSTRUCTION      = .false.
+
+#-----------------------------------------------------------
+# Sources
+#-----------------------------------------------------------
+
+NSOURCES                        = 1
+force_normal_to_surface         = .false.
+initialfield                    = .false.
+add_Bielak_conditions_bottom    = .false.
+add_Bielak_conditions_right     = .false.
+add_Bielak_conditions_top       = .false.
+add_Bielak_conditions_left      = .false.
+ACOUSTIC_FORCING                = .false.
+noise_source_time_function_type = 4
+write_moving_sources_database   = .false.
+
+#-----------------------------------------------------------
+# Receivers
+#
+# 72 geophones at 1m spacing, x=87m to x=158m.
+# record_at_surface_same_vertical dynamically places receivers 
+# on the exact free surface defined by the interfacesfile.
+#-----------------------------------------------------------
+
+seismotype                      = 2
+NTSTEP_BETWEEN_OUTPUT_SEISMOS   = 50000
+NTSTEP_BETWEEN_OUTPUT_SAMPLE    = 2
+USE_TRICK_FOR_BETTER_PRESSURE   = .false.
+USER_T0                         = 0.0d0
+save_ASCII_seismograms          = .false.
+save_binary_seismograms_single  = .false.
+save_binary_seismograms_double  = .false.
+SU_FORMAT                       = .true.
+
+use_existing_STATIONS           = .true.
+
+nreceiversets                   = 1
+anglerec                        = 0.d0
+rec_normal_to_surface           = .false.
+nrec                            = 72
+xdeb                            = 87.
+zdeb                            = 50.
+xfin                            = 158.
+zfin                            = 50.
+record_at_surface_same_vertical = .true.
+
+#-----------------------------------------------------------
+# adjoint kernels
+#-----------------------------------------------------------
+
+save_ASCII_kernels              = .true.
+NTSTEP_BETWEEN_COMPUTE_KERNELS  = 1
+APPROXIMATE_HESS_KL             = .false.
+
+#-----------------------------------------------------------
+# Boundary conditions
+#-----------------------------------------------------------
+
+PML_BOUNDARY_CONDITIONS         = .true.
+NELEM_PML_THICKNESS             = 6
+ROTATE_PML_ACTIVATE             = .false.
+ROTATE_PML_ANGLE                = 30.
+K_MIN_PML                       = 1.0d0
+K_MAX_PML                       = 1.0d0
+damping_change_factor_acoustic  = 0.5d0
+damping_change_factor_elastic   = 1.0d0
+PML_PARAMETER_ADJUSTMENT        = .false.
+STACEY_ABSORBING_CONDITIONS     = .false.
+ADD_PERIODIC_CONDITIONS         = .false.
+PERIODIC_HORIZ_DIST             = 300.d0
+
+#-----------------------------------------------------------
+#
+# Velocity and density models (unchanged from Mod 11)
+#
+# Material 1: Saturated limestone (below water table, z=0-40m)
+#   Vp=3600, Vs=1800, rho=2280 kg/m3
+#   Qkappa=100, Qmu=40  --> Qp~67, Qs=40
+#
+# Material 2: Unsaturated limestone (above water table, z=40m to surface)
+#   Vp=1600, Vs=800,  rho=2050 kg/m3
+#   Qkappa= 80, Qmu=30  --> Qp~51, Qs=30
+#
+# Material 3: Water-filled void (acoustic fluid)
+#   Vp=1500, Vs=0,    rho=1000 kg/m3
+#   Qkappa=9999, Qmu=9999 (lossless)
+#
+#-----------------------------------------------------------
+
+nbmodels                        = 4
+1 1 2280.d0 2900.d0  700.d0 0 0  70.d0   40.d0 0 0 0 0 0 0
+2 1 2050.d0 2200.d0  450.d0 0 0  50.d0   20.d0 0 0 0 0 0 0
+3 1 1600.d0  350.d0  200.d0 0 0  40.d0   15.d0 0 0 0 0 0 0
+4 1 1000.d0 1500.d0    0.d0 0 0 9999.d0 9999.d0 0 0 0 0 0 0
+
+TOMOGRAPHY_FILE                 = ./DATA/tomo_file.xyz
+read_external_mesh              = .false.
+
+#-----------------------------------------------------------
+# PARAMETERS FOR EXTERNAL MESHING (unused)
+#-----------------------------------------------------------
+
+mesh_file                       = ./DATA/mesh_file
+nodes_coords_file               = ./DATA/nodes_coords_file
+materials_file                  = ./DATA/materials_file
+free_surface_file               = ./DATA/free_surface_file
+axial_elements_file             = ./DATA/axial_elements_file
+absorbing_surface_file          = ./DATA/absorbing_surface_file
+acoustic_forcing_surface_file   = ./DATA/MSH/Surf_acforcing_Bottom_enforcing_mesh
+absorbing_cpml_file             = ./DATA/absorbing_cpml_file
+tangential_detection_curve_file = ./DATA/courbe_eros_nodes
+
+#-----------------------------------------------------------
+#
+# PARAMETERS FOR INTERNAL MESHING
+#
+# Grid: nx=600 (0.5m elements), nz=100 total (80 saturated + 20 unsaturated)
+# Top interface follows topography from interfaces_mod15_topography.dat
+#
+# Regions:
+#   Region 1: cols 1-600, rows 1-80   --> saturated limestone   (Mat 1)
+#   Region 2: cols 1-600, rows 81-100 --> unsaturated limestone (Mat 2)
+#   Region 3: cols 291-310, rows 61-70 --> water void (Mat 3)
+#
+# Void absolute position:
+#   x = 140-160m (cols 281-320, 0.5m elements)
+#   z =  25- 35m (rows  51- 70, 0.5m elements)
+#   Depth below 50m flat surface: 15-20m.
+#   The void is entirely within the saturated zone (z < 40m).
+#
+#-----------------------------------------------------------
+
+interfacesfile                  = ./DATA/interfaces.dat
+
+xmin                            = 0.d0
+xmax                            = 300.d0
+nx                              = 600
+
+absorbbottom                    = .true.
+absorbright                     = .true.
+absorbtop                       = .false.
+absorbleft                      = .true.
+
+nbregions                       = {nbregions}
+1 600   1  66  1
+1 600  67  94  2
+1 600  95 100  3
+{cave_regions}
+
+#-----------------------------------------------------------
+# Display / output
+#
+# All image output disabled for survey run (saves I/O time and disk space).
+# Re-enable output_color_image for a single diagnostic shot if needed.
+#-----------------------------------------------------------
+
+NTSTEP_BETWEEN_OUTPUT_INFO      = 1000
+output_grid_Gnuplot             = .false.
+output_grid_ASCII               = .false.
+OUTPUT_ENERGY                   = .false.
+NTSTEP_BETWEEN_OUTPUT_ENERGY    = 10
+COMPUTE_INTEGRATED_ENERGY_FIELD = .false.
+
+NTSTEP_BETWEEN_OUTPUT_IMAGES    = 500
+cutsnaps                        = 1.
+
+#### for JPEG color images ####
+output_color_image              = .false.
+imagetype_JPEG                  = 6
+factor_subsample_image          = 1.0d0
+USE_CONSTANT_MAX_AMPLITUDE      = .false.
+CONSTANT_MAX_AMPLITUDE_TO_USE   = 1.17d4
+POWER_DISPLAY_COLOR             = 0.30d0
+DRAW_SOURCES_AND_RECEIVERS      = .true.
+DRAW_WATER_IN_BLUE              = .true.
+USE_SNAPSHOT_NUMBER_IN_FILENAME = .true.
+
+#### for PostScript snapshots ####
+output_postscript_snapshot      = .false.
+imagetype_postscript            = 1
+meshvect                        = .true.
+modelvect                       = .false.
+boundvect                       = .true.
+interpol                        = .true.
+pointsdisp                      = 6
+subsamp_postscript              = 1
+sizemax_arrows                  = 1.d0
+US_LETTER                       = .false.
+
+#### for wavefield dumps ####
+output_wavefield_dumps          = .false.
+imagetype_wavefield_dumps       = 1
+use_binary_for_wavefield_dumps  = .false.
+
+#-----------------------------------------------------------
+
+NUMBER_OF_SIMULTANEOUS_RUNS     = 1
+BROADCAST_SAME_MESH_AND_MODEL   = .true.
+GPU_MODE                        = .false.
