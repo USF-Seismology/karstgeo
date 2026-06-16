@@ -1,7 +1,7 @@
 {
   "jochen_xlsx": "inputs/spreadsheets/jochen_field_notes_metadata_tables_with_geode_times.xlsx",
   "nodal_xlsx": "inputs/spreadsheets/glenn_smartsolo_nodal_metadata_with_estimated_coords.xlsx",
-  "topography": "inputs/topography/T1_LiDAR_profile.csv",
+  "topography": "inputs/topography/Profile - All Transect .xlsx",
   "refraction_sheets": [
     "T1_1m_Refraction",
     "T1_2m_Refraction",
