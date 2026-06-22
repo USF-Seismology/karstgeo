@@ -1,0 +1,25 @@
+name: karstgeo
+channels:
+  - conda-forge
+  - gimli
+  - defaults
+dependencies:
+  - python=3.13
+  - pygimli=1.6.0
+  - numpy
+  - scipy
+  - matplotlib
+  - pyvista
+  - ipykernel
+  - vtk
+  - sympy
+  - networkx
+  - tqdm
+  - requests
+  - pytest
+  - pip
+  - pip:
+      - torch==2.11.0
+      - torchvision==0.26.0
+      - deepwave==0.0.26
+
