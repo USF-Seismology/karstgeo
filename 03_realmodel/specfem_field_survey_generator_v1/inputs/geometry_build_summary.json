@@ -1,7 +1,7 @@
 {
-  "jochen_xlsx": "inputs/spreadsheets/jochen_field_notes_metadata_tables_with_geode_times.xlsx",
-  "nodal_xlsx": "inputs/spreadsheets/glenn_smartsolo_nodal_metadata_with_estimated_coords.xlsx",
-  "topography": "inputs/topography/Profile - All Transect .xlsx",
+  "jochen_xlsx": "/Users/glennthompson/Library/CloudStorage/Box-Box/thompsong/2026KarstGeophysicsDEP/04_FieldData/jochen_field_notes_metadata_tables_with_geode_times.xlsx",
+  "nodal_xlsx": "/Users/glennthompson/Library/CloudStorage/Box-Box/thompsong/2026KarstGeophysicsDEP/04_FieldData/glenn_smartsolo_nodal_metadata_with_estimated_coords.xlsx",
+  "topography": "/Users/glennthompson/Library/CloudStorage/Box-Box/thompsong/2026KarstGeophysicsDEP/05_Analysis/Elevation and DEMs/Profile_LIDAR_All_Transects.xlsx",
   "refraction_sheets": [
     "T1_1m_Refraction",
     "T1_2m_Refraction",
