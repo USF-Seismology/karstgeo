@@ -58,7 +58,7 @@ OUTPUT_DIR = (
 
 # Put this wrapper in the same directory as the main comparison script,
 # or change SCRIPT explicitly.
-SCRIPT = Path(__file__).with_name("60_compare_synthetic_cave_no_cave_v2.py")
+SCRIPT = Path(__file__).with_name("60_compare_synthetic_cave_no_cave_v3.py")
 
 
 # ------------------------------------------------------------------
@@ -87,6 +87,10 @@ cmd = [
     "--max-freq-hz", "150",
     "--write-diff-segy",
     "--write-individual-wiggles",
+    "--write-overlay-wiggles",
+    "--overlay-normalize", "pair",
+    "--overlay-wiggle-scale", "0.45",
+    "--peak-scale-halfwidth-s", "0.015",
 
     # Jochen/Pati cave center estimates were around 122-130 m.
     "--cave-extent-x-m", "122,130",
