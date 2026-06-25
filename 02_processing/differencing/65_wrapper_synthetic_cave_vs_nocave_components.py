@@ -34,7 +34,7 @@ OUTPUT_ROOT = (
     / "02_Modelling/Seismic/differencing/synthetic_cave_vs_nocave_comparison_v2"
 )
 
-SCRIPT = Path(__file__).with_name("65_compare_gather_pairs_v2.py")
+SCRIPT = Path(__file__).with_name("65_compare_gather_pairs_v3.py")
 
 COMPONENT_FILES = [
     "Ux_file_single_v.su",
