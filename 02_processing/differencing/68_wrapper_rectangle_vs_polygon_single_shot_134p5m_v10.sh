@@ -17,10 +17,10 @@ set -euo pipefail
 
 PYTHON="${PYTHON:-python}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ENGINE="${ENGINE:-$SCRIPT_DIR/65_compare_gather_pairs_v4.py}"
+ENGINE="${ENGINE:-$SCRIPT_DIR/65_compare_gather_pairs_v10.py}"
 MOVIE_SCRIPT="${MOVIE_SCRIPT:-$SCRIPT_DIR/66_make_movies_from_shot_figures_v3.sh}"
 
-BASE="${BASE:-/Users/thompsong/Library/CloudStorage/Box-Box/thompsong/2026KarstGeophysicsDEP}"
+BASE="${BASE:-$HOME/Library/CloudStorage/Box-Box/thompsong/2026KarstGeophysicsDEP}"
 SOURCES_GROUNDED="${SOURCES_GROUNDED:-$BASE/02_Modelling/Seismic/specfem2d/felix/T1_9_LayerModel_Simulation/SOURCES_GROUNDED}"
 
 RECTANGLE_ROOT="$SOURCES_GROUNDED/9_LAYER_MODEL_TOPO_RECTANGLE_1m_50Hz_DX_DZ_0d5m_DT_1e-5s/single_shot_134d5m"
@@ -66,13 +66,16 @@ COMMON_ARGS=(
   --max-freq-hz "400"
 
   --write-diff-segy
-  --write-individual-wiggles
-  --write-overlay-wiggles
+  --write-combined-three-panel-products
+  # Combined figures are preferred; standalone wiggle/overlay figures are off by default.
   --overlay-normalize pair
   --overlay-wiggle-scale "0.45"
 
-  --write-trace-normalized-figures
-  --trace-normalize-method "maxabs"
+  # Synthetic-vs-synthetic: preserve shared physical amplitudes/scales.
+  # Do not independently normalize reference and comparison traces.
+  --no-write-trace-normalized-figures
+  --no-frequency-trace-normalization
+  --no-combined-wiggle-trace-normalize
 
   --write-spectral-contours
   --spectral-contour-log10
@@ -82,7 +85,7 @@ COMMON_ARGS=(
   --band-energy-bands "10-30,30-80,80-150,150-400"
   --band-energy-window-s "0.05"
   --band-energy-step-s "0.01"
-  --band-energy-normalize-per-trace
+  --no-band-energy-normalize-per-trace
 
   --cave-extent-x-m "140.5,160.0"
   --limit "1"
@@ -101,8 +104,8 @@ fi
 if [[ "$WRITE_FK" == "1" ]]; then
   COMMON_ARGS+=(
     --write-fk-filtered
-    --fk-min-velocity-mps "1000"
-    --fk-taper-width-mps "200"
+    --fk-min-velocity-mps "500"
+    --fk-taper-width-mps "100"
     --fk-use-taper
   )
 fi
@@ -119,18 +122,33 @@ component_name() {
 
 run_component() {
   local component_file="$1"
-  local comp outdir log
+  local comp outdir log ref_file cmp_file
   comp="$(component_name "$component_file")"
   outdir="$OUT_ROOT/$comp"
   log="$OUT_ROOT/logs/rectangle_vs_polygon_${comp}.log"
   mkdir -p "$outdir"
 
+  ref_file="$RECTANGLE_ROOT/SURVEY_OUTPUT/shot_001_xs00134p5/$component_file"
+  cmp_file="$POLYGON_ROOT/SURVEY_OUTPUT/shot_001_xs00134p5/$component_file"
+
   echo
   echo "================================================================================"
   echo "Running rectangle vs polygon comparison for $comp"
   echo "================================================================================"
-  echo "Output: $outdir"
-  echo "Log:    $log"
+  echo "Reference:  $ref_file"
+  echo "Comparison: $cmp_file"
+  echo "Output:     $outdir"
+  echo "Log:        $log"
+
+  if [[ ! -f "$ref_file" ]]; then
+    echo "ERROR: missing reference component file for $comp: $ref_file" | tee "$log"
+    return 10
+  fi
+
+  if [[ ! -f "$cmp_file" ]]; then
+    echo "ERROR: missing comparison component file for $comp: $cmp_file" | tee "$log"
+    return 11
+  fi
 
   (
     echo "Command:"
@@ -149,7 +167,13 @@ run_component() {
       --output-dir "$outdir"
   ) >"$log" 2>&1
 
-  echo "Finished $comp"
+  local status=$?
+  if [[ "$status" -eq 0 ]]; then
+    echo "Finished $comp"
+  else
+    echo "FAILED $comp with status $status; see $log"
+  fi
+  return "$status"
 }
 
 echo "Engine:         $ENGINE"
@@ -172,9 +196,18 @@ for p in \
   [[ -e "$p" ]] && echo "  OK      $p" || echo "  MISSING $p"
 done
 
+STATUS=0
 for component_file in "${COMPONENT_FILES[@]}"; do
-  run_component "$component_file"
+  if ! run_component "$component_file"; then
+    STATUS=1
+  fi
 done
+
+if [[ "$STATUS" -ne 0 ]]; then
+  echo
+  echo "WARNING: one or more component runs failed."
+  echo "Check logs in: $OUT_ROOT/logs"
+fi
 
 if [[ "$RUN_MOVIES" == "1" ]]; then
   if [[ -f "$MOVIE_SCRIPT" ]]; then
@@ -190,3 +223,5 @@ echo
 echo "Done."
 echo "Products: $OUT_ROOT"
 echo "Logs:     $OUT_ROOT/logs"
+
+exit "$STATUS"

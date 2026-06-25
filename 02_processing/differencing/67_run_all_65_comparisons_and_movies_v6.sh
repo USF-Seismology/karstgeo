@@ -2,7 +2,7 @@
 set -euo pipefail
 PYTHON="${PYTHON:-python}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ENGINE="${ENGINE:-$SCRIPT_DIR/65_compare_gather_pairs_v4.py}"
+ENGINE="${ENGINE:-$SCRIPT_DIR/65_compare_gather_pairs_v8.py}"
 MOVIE_SCRIPT="${MOVIE_SCRIPT:-$SCRIPT_DIR/66_make_movies_from_shot_figures_v3.sh}"
 
 MAX_JOBS="${MAX_JOBS:-4}"
@@ -13,7 +13,7 @@ WRITE_BANDPASS="${WRITE_BANDPASS:-1}"
 WRITE_FK="${WRITE_FK:-1}"
 MOVIE_FPS="${MOVIE_FPS:-1}"
 
-BASE="${BASE:-/Users/thompsong/Library/CloudStorage/Box-Box/thompsong/2026KarstGeophysicsDEP}"
+BASE="${BASE:-$HOME/Library/CloudStorage/Box-Box/thompsong/2026KarstGeophysicsDEP}"
 SOURCES_GROUNDED="$BASE/02_Modelling/Seismic/specfem2d/felix/T1_9_LayerModel_Simulation/SOURCES_GROUNDED"
 CAVE_MODEL="$SOURCES_GROUNDED/9_LAYER_MODEL_TOPO_VOID_150m_T1_1m_50Hz_DX_DZ_0d5m_DT_1e-5s"
 NO_VOID_MODEL="$SOURCES_GROUNDED/9_LAYER_MODEL_TOPO_NO_VOID_T1_1m_50Hz_DX_DZ_0d5m_DT_1e-5s"
@@ -21,8 +21,8 @@ DATA_DIR="$NO_VOID_MODEL/DATA"
 PAR_FILE="$CAVE_MODEL/DATA/Par_file"
 REAL_DIR="$BASE/04_FieldData/051826/051826_Seismics_T1"
 
-OUT_ROOT="${OUT_ROOT:-$BASE/02_Modelling/Seismic/differencing/comparison_products_v4}"
-MOVIE_ROOT="${MOVIE_ROOT:-$BASE/02_Modelling/Seismic/differencing/movies_v4}"
+OUT_ROOT="${OUT_ROOT:-$BASE/02_Modelling/Seismic/differencing/comparison_products_v6}"
+MOVIE_ROOT="${MOVIE_ROOT:-$BASE/02_Modelling/Seismic/differencing/movies_v6}"
 mkdir -p "$OUT_ROOT/logs" "$MOVIE_ROOT"
 
 [[ -f "$ENGINE" ]] || { echo "ERROR: missing engine: $ENGINE"; exit 1; }
@@ -30,17 +30,15 @@ if [[ "$RUN_MOVIES" == "1" ]]; then
   [[ -f "$MOVIE_SCRIPT" ]] || { echo "ERROR: missing movie script: $MOVIE_SCRIPT"; exit 1; }
 fi
 
-COMMON_ARGS=(
+BASE_COMMON_ARGS=(
   --par-file "$PAR_FILE"
   --cave-extent-x-m "140.5,160.0"
   --max-freq-hz "400"
 
+  --write-combined-three-panel-products
   --write-individual-wiggles
   --write-overlay-wiggles
   --overlay-wiggle-scale "0.45"
-
-  --write-trace-normalized-figures
-  --trace-normalize-method "maxabs"
 
   --write-spectral-contours
   --spectral-contour-log10
@@ -50,11 +48,12 @@ COMMON_ARGS=(
   --band-energy-bands "10-30,30-80,80-150,150-400"
   --band-energy-window-s "0.05"
   --band-energy-step-s "0.01"
-  --band-energy-normalize-per-trace
 )
 
+DIAGNOSTIC_ARGS=()
+
 if [[ "$WRITE_BANDPASS" == "1" ]]; then
-  COMMON_ARGS+=(
+  DIAGNOSTIC_ARGS+=(
     --write-diagnostic-bandpass
     --diagnostic-bandpass-fmin "25"
     --diagnostic-bandpass-fmax "400"
@@ -64,19 +63,46 @@ if [[ "$WRITE_BANDPASS" == "1" ]]; then
 fi
 
 if [[ "$WRITE_FK" == "1" ]]; then
-  COMMON_ARGS+=(
+  DIAGNOSTIC_ARGS+=(
     --write-fk-filtered
-    --fk-min-velocity-mps "1000"
-    --fk-taper-width-mps "200"
+    --fk-min-velocity-mps "500"
+    --fk-taper-width-mps "100"
     --fk-use-taper
   )
 fi
 
 if [[ -n "${LIMIT:-}" ]]; then
-  COMMON_ARGS+=(--limit "$LIMIT")
+  BASE_COMMON_ARGS+=(--limit "$LIMIT")
 fi
 
 COMPONENT_FILES=("Ux_file_single_v.su" "Uz_file_single_v.su")
+
+# Synthetic-vs-synthetic:
+#   same source, same velocity model, same 2-D spreading/attenuation physics.
+#   Preserve physical amplitudes and shared scales. Do NOT independently
+#   trace-normalize reference and comparison gathers.
+SYNTHETIC_NORMALIZATION_ARGS=(
+  --overlay-normalize pair
+  --no-write-trace-normalized-figures
+  --no-frequency-trace-normalization
+  --no-band-energy-normalize-per-trace
+  --no-combined-wiggle-trace-normalize
+)
+
+# Real-vs-synthetic:
+#   source coupling/amplitude, velocity model, attenuation and geometrical
+#   spreading differ. Add independent trace-normalized diagnostics for waveform
+#   shape/timing/frequency comparisons, while still keeping physical-amplitude
+#   metrics in the baseline products.
+REAL_NORMALIZATION_ARGS=(
+  --overlay-normalize trace
+  --write-trace-normalized-figures
+  --trace-normalize-method "maxabs"
+  --frequency-trace-normalization
+  --band-energy-normalize-per-trace
+  --combined-wiggle-trace-normalize
+)
+
 
 component_name() {
   case "$1" in
@@ -125,9 +151,10 @@ run_synthetic() {
     --comparison-label "Synthetic WITHOUT cave/void" \
     --output-dir "$outdir" \
     --scale-mode none \
-    --overlay-normalize pair \
     --write-diff-segy \
-    "${COMMON_ARGS[@]}"
+    "${BASE_COMMON_ARGS[@]}" \
+    "${SYNTHETIC_NORMALIZATION_ARGS[@]}" \
+    "${DIAGNOSTIC_ARGS[@]}"
 }
 
 run_real() {
@@ -170,8 +197,9 @@ run_real() {
     --highpass-hz "10" \
     --filter-corners "4" \
     --zerophase \
-    --overlay-normalize trace \
-    "${COMMON_ARGS[@]}"
+    "${BASE_COMMON_ARGS[@]}" \
+    "${REAL_NORMALIZATION_ARGS[@]}" \
+    "${DIAGNOSTIC_ARGS[@]}"
 }
 
 make_movies() {
