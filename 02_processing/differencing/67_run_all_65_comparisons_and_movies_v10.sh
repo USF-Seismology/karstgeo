@@ -2,7 +2,7 @@
 set -euo pipefail
 PYTHON="${PYTHON:-python}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ENGINE="${ENGINE:-$SCRIPT_DIR/65_compare_gather_pairs_v10.py}"
+ENGINE="${ENGINE:-$SCRIPT_DIR/65_compare_gather_pairs_v11.py}"
 MOVIE_SCRIPT="${MOVIE_SCRIPT:-$SCRIPT_DIR/66_make_movies_from_shot_figures_v3.sh}"
 
 MAX_JOBS="${MAX_JOBS:-4}"
