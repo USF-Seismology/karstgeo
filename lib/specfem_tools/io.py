@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Sequence
+from typing import Mapping, Optional, Sequence
 
 import numpy as np
 import pandas as pd
@@ -24,7 +24,7 @@ from obspy.core import AttribDict
 
 try:
     from segy_tools.io import read_su_file, read_segy_as_stream, write_segy
-    from segy_tools.headers import make_trace_header
+    from lib.segy_tools.headers_shims import make_trace_header
     from segy_tools.gather import difference_segy_gathers, plot_wiggle_gather_from_stream
     from segy_tools.plotting import plot_difference_gathers
 except Exception:  # pragma: no cover - allows import before local package is on path
@@ -43,6 +43,119 @@ class Timing:
     dt_s: Optional[float] = None
     t0_s: Optional[float] = None
     starttime_iso: str = "1970-01-01T00:00:00"
+
+
+@dataclass(frozen=True)
+class Geometry:
+    """Simple 2-D survey geometry helper.
+
+    This is retained as a convenience for regularly spaced legacy synthetic
+    gathers, but the preferred path for RefraPick/field-style exports is to
+    pass explicit ``receiver_x_m`` and, optionally, ``receiver_z_m`` arrays or
+    station-index dictionaries.
+    """
+
+    first_receiver_x_m: float = 0.0
+    receiver_spacing_m: float = 1.0
+    receiver_z_m: float = 0.0
+    first_shot_x_m: float = 0.0
+    shot_spacing_m: float = 1.0
+    source_z_m: float = 0.0
+
+
+def receiver_x_from_station(station_idx: int, geom: Geometry) -> float:
+    """Return receiver x position for a regular station-index geometry."""
+    return geom.first_receiver_x_m + (int(station_idx) - 1) * geom.receiver_spacing_m
+
+
+def source_x_from_shot(shot_number: int, geom: Geometry) -> float:
+    """Return source x position for a regular shot-index geometry."""
+    return geom.first_shot_x_m + (int(shot_number) - 1) * geom.shot_spacing_m
+
+
+def _values_for_traces(
+    values,
+    *,
+    station_indices: Sequence[int] | None,
+    ntraces: int,
+    fallback,
+    name: str,
+) -> np.ndarray:
+    """Resolve scalar/array/mapping geometry values to one value per trace.
+
+    ``values`` may be one of:
+
+    * ``None``: use ``fallback``;
+    * scalar: use the same value for every trace;
+    * sequence with length ``ntraces``: assumed already in trace order;
+    * mapping keyed by integer station index or station name like ``S0001``.
+
+    ``fallback`` may be a scalar or a sequence with length ``ntraces``.
+    """
+    if values is None:
+        values = fallback
+
+    if isinstance(values, Mapping):
+        if station_indices is None:
+            raise ValueError(f"{name} was supplied as a mapping, but station_indices are unavailable.")
+        out = []
+        for sta in station_indices:
+            keys = (int(sta), str(sta), f"S{int(sta):04d}", f"S{int(sta)}")
+            for key in keys:
+                if key in values:
+                    out.append(float(values[key]))
+                    break
+            else:
+                raise KeyError(f"No {name} value found for station {sta!r}.")
+        return np.asarray(out, dtype=float)
+
+    if np.isscalar(values):
+        return np.full(ntraces, float(values), dtype=float)
+
+    arr = np.asarray(values, dtype=float)
+    if arr.size != ntraces:
+        raise ValueError(f"{name} must be scalar, mapping, or length {ntraces}; got length {arr.size}.")
+    return arr.astype(float, copy=False)
+
+
+def _regular_receiver_x(ntraces: int, first_receiver_x_m: float, receiver_spacing_m: float) -> np.ndarray:
+    return float(first_receiver_x_m) + np.arange(ntraces, dtype=float) * float(receiver_spacing_m)
+
+
+def _regular_receiver_x_from_station_indices(
+    station_indices: Sequence[int],
+    first_receiver_x_m: float,
+    receiver_spacing_m: float,
+) -> np.ndarray:
+    stations = np.asarray(station_indices, dtype=int)
+    station0 = int(stations.min())
+    return float(first_receiver_x_m) + (stations - station0).astype(float) * float(receiver_spacing_m)
+
+
+def _attach_standard_trace_header(
+    tr: Trace,
+    *,
+    station_idx: int,
+    receiver_x_m: float,
+    source_x_m: float,
+    shot_number: int,
+    receiver_z_m: float = 0.0,
+    source_z_m: float = 0.0,
+) -> None:
+    """Attach a project-standard SEG-Y trace header to one ObsPy Trace."""
+    if make_trace_header is None:
+        raise ImportError("segy_tools.headers.make_trace_header is not available.")
+    tr.stats.segy = AttribDict()
+    tr.stats.segy.trace_header = make_trace_header(
+        station_idx=int(station_idx),
+        receiver_x_m=float(receiver_x_m),
+        source_x_m=float(source_x_m),
+        shot_number=int(shot_number),
+        dt_s=float(tr.stats.delta),
+        npts=int(tr.stats.npts),
+        receiver_z_m=float(receiver_z_m),
+        source_z_m=float(source_z_m),
+    )
 
 
 def component_to_channel(component: str) -> str:
@@ -185,6 +298,9 @@ class SpecfemExportConfig:
     receiver_spacing_m: float = 1.0
     first_receiver_x_m: float = 0.0
     source_x_m: float = 0.0
+    receiver_x_m: object = None
+    receiver_z_m: object = None
+    source_z_m: float = 0.0
     network: str = "SY"
 
     def ensure_directories(self) -> None:
@@ -371,8 +487,14 @@ def specfem_gather_result_to_stream(
     source_x_m: float = 0.0,
     shot_number: int = 1,
     network: str = "SY",
+    receiver_x_m=None,
+    receiver_z_m=None,
+    source_z_m: float = 0.0,
 ) -> Stream:
     """Convert a loaded SPECFEM gather result to a standardized ObsPy stream.
+
+    This function supports both the older regular synthetic geometry and the
+    newer irregular-geometry workflow needed for RefraPick/field-style SEG-Y.
 
     Parameters
     ----------
@@ -381,12 +503,22 @@ def specfem_gather_result_to_stream(
     component
         Channel/component code to assign to traces.
     receiver_spacing_m, first_receiver_x_m, source_x_m
-        Synthetic geometry used when source/receiver coordinates are not stored
-        in the native output.
+        Legacy regular synthetic geometry used when ``receiver_x_m`` is not
+        supplied.
     shot_number
         Field-record number assigned in SEG-Y trace headers.
     network
         ObsPy network code.
+    receiver_x_m
+        Optional explicit receiver x positions. May be a scalar, a sequence in
+        trace order, or a mapping keyed by station index/name. Supplying this is
+        the preferred route for irregular receiver spacing.
+    receiver_z_m
+        Optional receiver elevations/depths in metres. May be scalar, sequence,
+        or mapping. These are written through to the SEG-Y trace header using
+        ``make_trace_header(..., receiver_z_m=...)``.
+    source_z_m
+        Optional source elevation/depth in metres.
 
     Returns
     -------
@@ -401,22 +533,35 @@ def specfem_gather_result_to_stream(
 
     if mode == "su":
         st = result["stream"].copy()
+        ntr = len(st)
+        rx_fallback = _regular_receiver_x(ntr, first_receiver_x_m, receiver_spacing_m)
+        rx = _values_for_traces(
+            receiver_x_m,
+            station_indices=None,
+            ntraces=ntr,
+            fallback=rx_fallback,
+            name="receiver_x_m",
+        )
+        rz = _values_for_traces(
+            receiver_z_m,
+            station_indices=None,
+            ntraces=ntr,
+            fallback=0.0,
+            name="receiver_z_m",
+        )
         for i, tr in enumerate(st, start=1):
-            receiver_x_m = first_receiver_x_m + (i - 1) * receiver_spacing_m
             tr.stats.network = network
             tr.stats.station = f"S{i:04d}"
             tr.stats.location = f"{int(shot_number) % 100:02d}"
             tr.stats.channel = result.get("component", component).upper()
-            tr.stats.segy = AttribDict()
-            tr.stats.segy.trace_header = make_trace_header(
+            _attach_standard_trace_header(
+                tr,
                 station_idx=i,
-                receiver_x_m=float(receiver_x_m),
+                receiver_x_m=float(rx[i - 1]),
                 source_x_m=float(source_x_m),
                 shot_number=int(shot_number),
-                dt_s=float(tr.stats.delta),
-                npts=int(tr.stats.npts),
-                receiver_z_m=0.0,
-                source_z_m=0.0,
+                receiver_z_m=float(rz[i - 1]),
+                source_z_m=float(source_z_m),
             )
         return st
 
@@ -427,11 +572,27 @@ def specfem_gather_result_to_stream(
         if time_s.size < 2:
             raise ValueError("SEM gather time vector must contain at least two samples.")
         dt = float(np.median(np.diff(time_s)))
-        st = Stream()
-        station0 = int(station_indices.min())
+        ntr = len(station_indices)
+        rx_fallback = _regular_receiver_x_from_station_indices(
+            station_indices, first_receiver_x_m, receiver_spacing_m
+        )
+        rx = _values_for_traces(
+            receiver_x_m,
+            station_indices=station_indices,
+            ntraces=ntr,
+            fallback=rx_fallback,
+            name="receiver_x_m",
+        )
+        rz = _values_for_traces(
+            receiver_z_m,
+            station_indices=station_indices,
+            ntraces=ntr,
+            fallback=0.0,
+            name="receiver_z_m",
+        )
 
+        st = Stream()
         for row_index, station_index in enumerate(station_indices):
-            receiver_x_m = first_receiver_x_m + (int(station_index) - station0) * receiver_spacing_m
             tr = Trace(data=data[row_index].astype(np.float32))
             tr.stats.network = network
             tr.stats.station = f"S{int(station_index):04d}"
@@ -439,16 +600,14 @@ def specfem_gather_result_to_stream(
             tr.stats.channel = component
             tr.stats.delta = dt
             tr.stats.starttime = UTCDateTime(1970, 1, 1) + float(time_s[0])
-            tr.stats.segy = AttribDict()
-            tr.stats.segy.trace_header = make_trace_header(
+            _attach_standard_trace_header(
+                tr,
                 station_idx=int(station_index),
-                receiver_x_m=float(receiver_x_m),
+                receiver_x_m=float(rx[row_index]),
                 source_x_m=float(source_x_m),
                 shot_number=int(shot_number),
-                dt_s=dt,
-                npts=int(tr.stats.npts),
-                receiver_z_m=0.0,
-                source_z_m=0.0,
+                receiver_z_m=float(rz[row_index]),
+                source_z_m=float(source_z_m),
             )
             st.append(tr)
         return st
@@ -467,6 +626,9 @@ def load_model_as_stream(
     source_x_m: float = 0.0,
     shot_number: Optional[int] = None,
     network: str = "SY",
+    receiver_x_m=None,
+    receiver_z_m=None,
+    source_z_m: float = 0.0,
     verbose: bool = True,
 ) -> tuple[Stream, dict]:
     """Load a SPECFEM2D model directory and return a standardized stream.
@@ -494,6 +656,9 @@ def load_model_as_stream(
         source_x_m=source_x_m,
         shot_number=int(shot_number),
         network=network,
+        receiver_x_m=receiver_x_m,
+        receiver_z_m=receiver_z_m,
+        source_z_m=source_z_m,
     )
     return st, result
 
@@ -556,6 +721,9 @@ def write_model_products(
         source_x_m=config.source_x_m,
         shot_number=shot_number,
         network=config.network,
+        receiver_x_m=config.receiver_x_m,
+        receiver_z_m=config.receiver_z_m,
+        source_z_m=config.source_z_m,
         verbose=verbose,
     )
 
@@ -650,6 +818,123 @@ def batch_write_model_products(
                 })
     return pd.DataFrame(rows)
 
+
+
+def convert_sem_output_to_segy(
+    input_dir: str | Path,
+    output_dir: str | Path,
+    component: str = "Z",
+    extension: str = "semv",
+    shot_number: int = 1,
+    source_x_m: float | None = None,
+    geom: Geometry | None = None,
+    timing: Timing | None = None,
+    network: str = "SY",
+    receiver_x_m=None,
+    receiver_z_m=None,
+    source_z_m: float | None = None,
+    verbose: bool = True,
+) -> Path:
+    """Convert one SPECFEM SEM ASCII shot gather directly to SEG-Y.
+
+    This replaces the useful SEM conversion functionality that previously lived
+    in ``converters.py``.  For irregular receiver spacing, pass ``receiver_x_m``
+    as either a trace-order sequence or a mapping keyed by SPECFEM station index
+    / station name.  For topography, pass matching ``receiver_z_m`` values.
+    """
+    if write_segy is None:
+        raise ImportError("segy_tools.io.write_segy is not available.")
+
+    geom = geom or Geometry()
+    timing = timing or Timing()
+    if source_x_m is None:
+        source_x_m = source_x_from_shot(shot_number, geom)
+    if source_z_m is None:
+        source_z_m = geom.source_z_m
+
+    time_s, data, stations = read_sem_gather(
+        input_dir,
+        component=component,
+        extension=extension,
+        timing=timing,
+        verbose=verbose,
+    )
+    result = {
+        "mode": "sem",
+        "time": time_s,
+        "data": data,
+        "station_indices": stations,
+        "component": component_to_channel(component),
+        "extension": extension,
+    }
+    st = specfem_gather_result_to_stream(
+        result,
+        component=component_to_channel(component),
+        receiver_spacing_m=geom.receiver_spacing_m,
+        first_receiver_x_m=geom.first_receiver_x_m,
+        source_x_m=float(source_x_m),
+        shot_number=int(shot_number),
+        network=network,
+        receiver_x_m=receiver_x_m,
+        receiver_z_m=receiver_z_m if receiver_z_m is not None else geom.receiver_z_m,
+        source_z_m=float(source_z_m),
+    )
+
+    channel = component_to_channel(component)
+    outpath = Path(output_dir).expanduser() / channel / f"shot_{int(shot_number):03d}_{channel}_{extension or 'sem'}.segy"
+    outpath.parent.mkdir(parents=True, exist_ok=True)
+    write_segy(st, outpath)
+    if verbose:
+        print(f"Wrote {outpath}")
+    return outpath
+
+
+def convert_su_shot_to_segy(
+    su_path: str | Path,
+    output_path: str | Path,
+    receiver_x_m,
+    source_x_m: float,
+    shot_number: int,
+    dt_s: float | None = None,
+    t0_s: float = 0.0,
+    component: str = "Z",
+    receiver_z_m=None,
+    source_z_m: float = 0.0,
+    network: str = "SY",
+) -> Path:
+    """Convert one SPECFEM SU shot gather to SEG-Y with explicit geometry.
+
+    ``receiver_x_m`` should normally be the true receiver positions in trace
+    order.  This is the direct path to produce RefraPick-friendly SEG-Y for an
+    irregular STATIONS file.  ``receiver_z_m`` may be supplied to preserve
+    topography/elevation in the SEG-Y trace headers.
+    """
+    if read_su_file is None:
+        raise ImportError("segy_tools.io.read_su_file is not available.")
+    if write_segy is None:
+        raise ImportError("segy_tools.io.write_segy is not available.")
+
+    st_in = read_su_file(su_path, dt_s=dt_s, t0_s=t0_s)
+    result = {
+        "mode": "su",
+        "stream": st_in,
+        "component": component_to_channel(component),
+    }
+    # If dt_s was not supplied, preserve the sample interval returned by read_su_file.
+    st = specfem_gather_result_to_stream(
+        result,
+        component=component_to_channel(component),
+        source_x_m=float(source_x_m),
+        shot_number=int(shot_number),
+        network=network,
+        receiver_x_m=receiver_x_m,
+        receiver_z_m=receiver_z_m,
+        source_z_m=float(source_z_m),
+    )
+    output_path = Path(output_path).expanduser()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    write_segy(st, output_path)
+    return output_path
 
 def plot_segy_file(
     segy_file: str | Path,
