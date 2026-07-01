@@ -37,3 +37,25 @@ For MASW, surface waves are the signal. You would instead keep the coherent Rayl
 So the report language could be:
 
 We will treat the shot gathers using two complementary processing branches. For seismic refraction and diffraction analysis, the dominant low-velocity surface-wave energy will be muted or suppressed to improve first-break picking and highlight body-wave arrivals and scattered phases. In parallel, the same surface-wave energy will be retained for MASW analysis, where frequency-dependent surface-wave velocity is used to estimate shallow shear-wave structure. This dual-use workflow allows the same field acquisition to support both travel-time tomography and surface-wave characterization of shallow void-related anomalies.
+
+
+# TO-DO, July 1, 2026:
+Draft Report submitted June 29, 2026
+
+All nodal field data and analysis now in Box
+
+Main thing still to do is to construct combined shot gathers for all nodal events at same shot location. And then add in geode data from refraction and streamer surveys at same shot positions. 
+Then pick times. And create better layered seismic velocity models.
+Can either do this interactively - which we can partly do with segy_wiggle_picker.py in apps, and we were starting to flesh out much further with commonshot.py and test_commonshot.py and layer on a more comprehensive GUI.
+or we can do this automatically, and I already ran my consensus picker - although how successfully i have not measured.
+Or I could do interactive picking directly in Antelope, as a backup if I cannot get GUI to work. Or run autodetection. Indeed, that would be a useful demo to students for Antelope.
+
+All paths should be changed to Box.
+
+Deprecated codes should probably be removed.
+
+Also we can make use of many analysis products, like pick times and single shot gather files, and even existing stacked shotgathers that match geode events. Rather than have to rebuild and re-run the processing sequence from scratch around the versions of specfem_tools and segy_tools I refactored in past 2 days.
+
+Felix is running all shot positions for the T1 line, to enable comparison/differencing. But i do need to still find a way to match amplitude between synthetic and real data, so i can do subtraction. But not really worth it without updating velocity models first, which would require a whole new SPECFEM run afterwards anyway.
+
+So the priority is to pick the real data in a better way, to get a better model, rather than do more differencing yet.
