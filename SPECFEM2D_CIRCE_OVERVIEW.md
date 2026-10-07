@@ -412,7 +412,26 @@ mpirun --mca btl self,vader,tcp -np 4 \
   /shares/seismo_lab/specfem2d/bin/xspecfem2D
 ```
 
-### Current survey-script procedure
+### Required MPI behavior
+
+The bundled example's `run_this_example.sh` confirms the intended behavior:
+
+- if `NPROC = 1`, launch both programs directly; and
+- if `NPROC > 1`, launch both programs through `mpirun -np NPROC`.
+
+On CIRCE, the parallel form is therefore:
+
+```bash
+mpirun --mca btl self,vader,tcp -np "${NPROC}" \
+  /shares/seismo_lab/specfem2d/bin/xmeshfem2D
+
+mpirun --mca btl self,vader,tcp -np "${NPROC}" \
+  /shares/seismo_lab/specfem2d/bin/xspecfem2D
+```
+
+The process count must equal `NPROC` in `DATA/Par_file` for both commands.
+
+### Survey-runner correction required
 
 Felix's CIRCE survey script and the newer generated-case runner launch the mesher directly and the solver with MPI:
 
@@ -423,9 +442,15 @@ mpirun --mca btl self,vader,tcp -np 16 \
   /shares/seismo_lab/specfem2d/bin/xspecfem2D
 ```
 
-This difference should be tested explicitly with Sarah's Mod15 case. The existing comments are also inconsistent: Felix's script says that the mesher is run with MPI, but its actual command launches it directly.
+This is inconsistent with the bundled parallel example and the successful May 6 validation. Felix's script even says that the mesher is run with MPI, while its actual command launches it directly.
 
-Until this is resolved, preserve the exact command and log used for every validation run.
+Before using either runner with `NPROC > 1`, change its mesher command to:
+
+```bash
+mpirun ${CIRCE_FLAGS} -np "${NPROC}" "${BIN_DIR}/xmeshfem2D"
+```
+
+Preserve the mesher and solver commands and logs with every validation run.
 
 ### When remeshing is required
 
@@ -707,6 +732,100 @@ squeue -j JOB_ID
 
 After completion, verify the SLURM output, `logs/meshfem.log`, `logs/specfem.log`, expected seismograms, and the solver's successful-completion message before treating the scheduler workflow as validated.
 
+### Scheduler validation status
+
+On October 7, 2026, CIRCE accepted the provisional script with `sbatch --test-only`:
+
+```text
+Job estimate:  34094450
+Estimated start: 2026-10-08 08:13:27
+Processors:    4
+Node:          svc-3024-54-2
+Partition:     amd_2021
+```
+
+This confirms that the requested account, partition, QOS, processor count, memory, and wall time form a scheduler-valid request. `--test-only` does not submit the job or execute the shell script, so it does **not** yet validate:
+
+- the independent case-directory layout;
+- the required `DATA` files and referenced paths;
+- the `NPROC` consistency check;
+- MPI startup on the allocated compute node;
+- meshing and solver execution; or
+- output generation and archiving.
+
+The estimated start time is a scheduling estimate, not a reservation or guarantee.
+
+### Build an independent copy of the bundled validation case
+
+The bundled example contains its complete `DATA` directory, including both interface files. It generates its stations internally (`use_existing_STATIONS = .false.`), so a `STATIONS` input is not required for this particular validation case.
+
+Create an independent working copy under `/work`:
+
+```bash
+cd /work/t/thompsong
+mkdir -p specfem2d_validation_simple
+cp -a \
+  /shares/seismo_lab/specfem2d/EXAMPLES/simple_topography_and_also_a_simple_fluid_layer/DATA \
+  specfem2d_validation_simple/
+cp run_specfem2d_validation.slurm specfem2d_validation_simple/
+cd specfem2d_validation_simple
+```
+
+Change only the copied `Par_file` to four MPI processes:
+
+```bash
+sed -i -E \
+  's/^([[:space:]]*NPROC[[:space:]]*=[[:space:]]*)[0-9]+/\1 4/' \
+  DATA/Par_file
+```
+
+Verify the relevant configuration before submission:
+
+```bash
+grep -nE '^[[:space:]]*(NPROC|SIMULATION_TYPE|use_existing_STATIONS|interfacesfile)' \
+  DATA/Par_file
+```
+
+Both interface files listed in the example inventory will be present under the copied `DATA` directory. Confirm that the value of `interfacesfile` resolves from the case directory before submitting.
+
+Then validate the scheduler request again from inside the completed case directory:
+
+```bash
+sbatch --test-only run_specfem2d_validation.slurm
+```
+
+Only after these checks should the real validation job be submitted.
+
+The independent case was created successfully at:
+
+```text
+/work/t/thompsong/specfem2d_validation_simple
+```
+
+Its verified settings are:
+
+```text
+SIMULATION_TYPE        = 1
+NPROC                  = 4
+use_existing_STATIONS  = .false.
+interfacesfile         = ./interfaces_simple_topo_curved.dat
+```
+
+The referenced interface file is included in the copied `DATA` directory. The case is therefore ready for shell-syntax validation and scheduler submission testing.
+
+Shell syntax, interface-file presence, and a second scheduler test all passed. The first real validation job was then submitted:
+
+```text
+Job ID:      34094467
+Partition:   amd_2021
+Job name:    specfem2d-test (abbreviated in default squeue output)
+Tasks:       4
+Initial state: PD (pending)
+Pending reason: Priority
+```
+
+The preceding `--test-only` request was scheduler-valid and estimated a start time of October 8, 2026 at 08:13:27. The actual job's start time remains subject to scheduling changes.
+
 ---
 
 ## 12. Recommended provenance record for every production run
@@ -780,10 +899,10 @@ Particularly valuable files are:
 
 ## 14. Remaining validation tasks
 
-1. Determine why the example used an MPI-launched mesher while the survey scripts launch it directly.
-2. Reproduce Sarah's Mod15 run without changing its inputs.
-3. Confirm that the reproduced outputs agree with Sarah's archived results.
-4. Validate one source-only change while reusing the existing mesh.
-5. Test and refine the provisional CIRCE scheduler submission script.
+1. Correct both survey runners so that `xmeshfem2D` uses `NPROC` MPI ranks for parallel cases.
+2. Test and refine the provisional CIRCE scheduler submission script with the bundled example.
+3. Reproduce Sarah's Mod15 run without changing its inputs.
+4. Confirm that the reproduced outputs agree with Sarah's archived results.
+5. Validate one source-only change while reusing the existing mesh.
 6. Run a small generated cave/no-cave pair and confirm that metadata, logs, and outputs are complete.
 7. Only then launch the full field-survey model suites.
