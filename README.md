@@ -16,6 +16,7 @@ Add a README to each folder too please.
 
 For refraction/diffraction analysis vs MASW. Same shot gathers, two processing branches:
 
+<pre>
 Raw shot gathers
 ├── Refraction / diffraction branch
 │   ├── Mute or suppress surface waves
@@ -29,7 +30,7 @@ Raw shot gathers
     ├── Transform to the f–k or phase-velocity–frequency domain
     ├── Pick dispersion curves
     └── Invert for Vs
-
+</pre>
 For refraction, surface waves are mostly a nuisance because they dominate amplitude and confuse first-break pickers. Use f-k filtering, velocity mutes, or time-offset mutes to reduce slow coherent ground roll.
 
 For MASW, surface waves are the signal. You would instead keep the coherent Rayleigh-wave train and suppress early body-wave arrivals, random noise, and late scattered energy.
