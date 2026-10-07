@@ -17,18 +17,18 @@ Add a README to each folder too please.
 For refraction/diffraction analysis vs MASW. Same shot gathers, two processing branches:
 
 Raw shot gathers
-    ├── Refraction / diffraction branch
-    │       mute or suppress surface waves
-    │       preserve first breaks, refractions, diffractions
-    │       pick arrivals
-    │       invert with PyGIMLi / RefraPy
-    │
-    └── MASW branch
-            preserve surface waves
-            mute/suppress body waves if needed
-            transform to f-k or phase-velocity/frequency domain
-            pick dispersion curves
-            invert for Vs
+├── Refraction / diffraction branch
+│   ├── Mute or suppress surface waves
+│   ├── Preserve first breaks, refractions, and diffractions
+│   ├── Pick arrivals
+│   └── Invert with PyGIMLi / RefraPy
+│
+└── MASW branch
+    ├── Preserve surface waves
+    ├── Mute or suppress body waves if needed
+    ├── Transform to the f–k or phase-velocity–frequency domain
+    ├── Pick dispersion curves
+    └── Invert for Vs
 
 For refraction, surface waves are mostly a nuisance because they dominate amplitude and confuse first-break pickers. Use f-k filtering, velocity mutes, or time-offset mutes to reduce slow coherent ground roll.
 
